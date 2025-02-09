@@ -54,6 +54,7 @@ export const sendMessage = async (req, res) => {
       receiverId,
       text,
       image: imageUrl,
+      status: "sent",
     });
 
     await newMessage.save();
@@ -66,9 +67,40 @@ export const sendMessage = async (req, res) => {
       });
     }
 
+    // Update message to "delivered" if receiver is online
+    newMessage.status = "delivered";
+    await newMessage.save();
+    io.to(receiverSocketId).emit("messageStatus", {
+      messageId: newMessage._id,
+      status: "delivered",
+    });
+
     res.status(201).json(newMessage);
   } catch (error) {
     console.log("Error in sendMessage controller: ", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const markMessagesAsSeen = async (req, res) => {
+  try {
+    const { id: senderId } = req.params;
+    const receiverId = req.user._id;
+
+    await Message.updateMany(
+      { senderId, receiverId, status: { $ne: "seen" } },
+      { $set: { status: "seen" } }
+    );
+
+    // Notify sender that messages are seen
+    const senderSocketId = getReceiverSocketId(senderId);
+    if (senderSocketId) {
+      io.to(senderSocketId).emit("messageStatus", { senderId, status: "seen" });
+    }
+
+    res.status(200).json({ message: "Messages marked as seen" });
+  } catch (error) {
+    console.log("Error in markMessagesAsSeen controller: ", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };

@@ -35,6 +35,8 @@ export const useChatStore = create((set, get) => ({
           (n) => n.sender._id !== userId
         ),
       }));
+
+      await axiosInstance.post(`/messages/seen/${userId}`);
     } catch (error) {
       toast.error(error.response.data.message);
     } finally {
@@ -55,21 +57,51 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // subscribeToMessages: () => {
+  //   const { selectedUser } = get();
+  //   const socket = useAuthStore.getState().socket;
+
+  //   socket.on("newMessage", ({ message, sender }) => {
+  //     const isCurrentChat = selectedUser && sender._id === selectedUser._id;
+
+  //     if (isCurrentChat) {
+  //       set({ messages: [...get().messages, message] });
+  //     } else {
+  //       set((state) => ({
+  //         notifications: [
+  //           ...state.notifications,
+  //           { sender, message, timestamp: new Date() },
+  //         ],
+  //       }));
+  //     }
+  //   });
+  // },
+
   subscribeToMessages: () => {
-    const { selectedUser } = get();
     const socket = useAuthStore.getState().socket;
 
     socket.on("newMessage", ({ message, sender }) => {
+      const { selectedUser, messages } = get();
       const isCurrentChat = selectedUser && sender._id === selectedUser._id;
 
       if (isCurrentChat) {
-        set({ messages: [...get().messages, message] });
+        set({ messages: [...messages, message] });
+
+        // Mark as seen when chat is open
+        axiosInstance.post(`/messages/seen/${sender._id}`);
       } else {
         set((state) => ({
-          notifications: [
-            ...state.notifications,
-            { sender, message, timestamp: new Date() },
-          ],
+          notifications: [...state.notifications, { sender, message }],
+        }));
+      }
+    });
+
+    socket.on("messageStatus", ({ senderId, status }) => {
+      if (status === "seen") {
+        set((state) => ({
+          messages: state.messages.map((msg) =>
+            msg.senderId === senderId ? { ...msg, status: "seen" } : msg
+          ),
         }));
       }
     });

@@ -6,6 +6,40 @@ import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/utils";
 
+// Tick Icons
+const GrayTick = () => (
+  <svg className="size-4 text-gray-500" viewBox="0 0 24 24">
+    <path
+      d="M2 12l6 6L22 4"
+      stroke="currentColor"
+      strokeWidth="2"
+      fill="none"
+    />
+  </svg>
+);
+
+const GrayDoubleTick = () => (
+  <svg className="size-4 text-gray-500" viewBox="0 0 24 24">
+    <path
+      d="M2 12l6 6L22 4M8 12l6 6 6-6"
+      stroke="currentColor"
+      strokeWidth="2"
+      fill="none"
+    />
+  </svg>
+);
+
+const BlueDoubleTick = () => (
+  <svg className="size-4 text-blue-500" viewBox="0 0 24 24">
+    <path
+      d="M2 12l6 6L22 4M8 12l6 6 6-6"
+      stroke="currentColor"
+      strokeWidth="2"
+      fill="none"
+    />
+  </svg>
+);
+
 const ChatContainer = () => {
   const {
     messages,
@@ -58,7 +92,7 @@ const ChatContainer = () => {
               message.senderId === authUser._id ? "chat-end" : "chat-start"
             }`}
             ref={messageEndRef}>
-            <div className=" chat-image avatar">
+            <div className="chat-image avatar">
               <div className="size-10 rounded-full border">
                 <img
                   src={
@@ -84,6 +118,17 @@ const ChatContainer = () => {
                 />
               )}
               {message.text && <p>{message.text}</p>}
+
+              {/* ✅ Tick Icons for Message Status */}
+              <div className="flex justify-end items-center space-x-1 mt-1">
+                {message.senderId === authUser._id && (
+                  <>
+                    {message.status === "sent" && <GrayTick />}
+                    {message.status === "delivered" && <GrayDoubleTick />}
+                    {message.status === "seen" && <BlueDoubleTick />}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -93,4 +138,5 @@ const ChatContainer = () => {
     </div>
   );
 };
+
 export default ChatContainer;
