@@ -5,14 +5,24 @@ import SidebarSkeleton from "./skeletons/SidebarSkeleton";
 import { Users } from "lucide-react";
 
 const Sidebar = () => {
-  const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } =
-    useChatStore();
+  const {
+    getUsers,
+    users,
+    selectedUser,
+    setSelectedUser,
+    isUsersLoading,
+    notifications,
+  } = useChatStore();
   const { onlineUsers } = useAuthStore();
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
 
   useEffect(() => {
     getUsers();
   }, [getUsers]);
+
+  const getUnreadCount = (userId) => {
+    return notifications.filter((n) => n.sender._id === userId).length;
+  };
 
   const filteredUsers = showOnlineOnly
     ? users.filter((user) => onlineUsers.includes(user._id))
@@ -88,6 +98,14 @@ const Sidebar = () => {
                 {onlineUsers.includes(user._id) ? "Online" : "Offline"}
               </div>
             </div>
+
+            {/* Show unread message count */}
+
+            {getUnreadCount(user._id) > 0 && (
+              <span className="ml-auto bg-red-500 text-white text-xs font-bold p-1 rounded-full size-5 flex items-center justify-center">
+                {getUnreadCount(user._id)}
+              </span>
+            )}
           </button>
         ))}
 

@@ -7,6 +7,7 @@ export const useChatStore = create((set, get) => ({
   messages: [],
   users: [],
   selectedUser: null,
+  notifications: [], // Store unread messages
   isUsersLoading: false,
   isMessagesLoading: false,
 
@@ -27,12 +28,20 @@ export const useChatStore = create((set, get) => ({
     try {
       const res = await axiosInstance.get(`/messages/${userId}`);
       set({ messages: res.data });
+
+      // Clear notifications for this user when messages are loaded
+      set((state) => ({
+        notifications: state.notifications.filter(
+          (n) => n.sender._id !== userId
+        ),
+      }));
     } catch (error) {
       toast.error(error.response.data.message);
     } finally {
       set({ isMessagesLoading: false });
     }
   },
+
   sendMessage: async (messageData) => {
     const { selectedUser, messages } = get();
     try {
@@ -48,18 +57,21 @@ export const useChatStore = create((set, get) => ({
 
   subscribeToMessages: () => {
     const { selectedUser } = get();
-    if (!selectedUser) return;
-
     const socket = useAuthStore.getState().socket;
 
-    socket.on("newMessage", (newMessage) => {
-      const isMessageSentFromSelectedUser =
-        newMessage.senderId === selectedUser._id;
-      if (!isMessageSentFromSelectedUser) return;
+    socket.on("newMessage", ({ message, sender }) => {
+      const isCurrentChat = selectedUser && sender._id === selectedUser._id;
 
-      set({
-        messages: [...get().messages, newMessage],
-      });
+      if (isCurrentChat) {
+        set({ messages: [...get().messages, message] });
+      } else {
+        set((state) => ({
+          notifications: [
+            ...state.notifications,
+            { sender, message, timestamp: new Date() },
+          ],
+        }));
+      }
     });
   },
 
